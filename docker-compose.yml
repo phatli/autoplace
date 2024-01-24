@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  autoplace:
+    image: phatli/autoplace
+    container_name: autoplace
+    stdin_open: true
+    tty: true
+    volumes:
+      - .:/home/user/autoplace
+      - type: volume 
+        source: datasets
+        target: /home/user/datasets
+        volume:
+          nocopy: true
+
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+volumes:
+  datasets:
+    external: true
+    name: datasets
