@@ -4,7 +4,6 @@ import torch.nn.functional as F
 from sklearn.neighbors import NearestNeighbors
 import torchvision.models as models
 from torch.utils.data import DataLoader, SubsetRandomSampler
-from ipdb import set_trace
 
 class Flatten(nn.Module):
     def forward(self, input):

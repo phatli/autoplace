@@ -6,6 +6,7 @@ services:
     container_name: autoplace
     stdin_open: true
     tty: true
+    ipc: host
     volumes:
       - .:/home/user/autoplace
       - type: volume 
