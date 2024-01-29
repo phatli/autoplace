@@ -288,7 +288,7 @@ class QueryDatasetFromStruct(data.Dataset):
             posIndex = self.nontrivial_positives[index][posNN].item()
 
             negSample = np.random.choice(self.potential_negatives[index], self.nNegSample)  # randomly choose potential_negatives
-            negSample = np.unique(np.concatenate([self.negCache[index], negSample]))        # remember negSamples history for each query
+            negSample = np.unique(np.concatenate([self.negCache[index], negSample])).astype(np.int64)        # remember negSamples history for each query
 
             negFeat = h5feat[negSample.tolist()]
             negFeat = torch.tensor(negFeat)

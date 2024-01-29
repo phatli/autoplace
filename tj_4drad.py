@@ -47,7 +47,7 @@ def parse_dbStruct(path):
     mat = loadmat(path)
     matStruct = mat['dbStruct'].item()
 
-    dataset = 'nuscenes'
+    dataset = 'tj_4drad'
 
     whichSet = matStruct[0].item()
 

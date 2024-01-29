@@ -1,18 +1,95 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Python: Current File",
-            "type": "python",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "cwd": "${workspaceFolder}/preprocess",
-            "args": ["--split", "test", "--struct_dir", "./../dataset/7n5s_xy11_remove"]
-        }
-    ]
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Current File",
+      "type": "python",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "cwd": "${workspaceFolder}/preprocess",
+      "args": [
+        "--split",
+        "test",
+        "--struct_dir",
+        "./../dataset/7n5s_xy11_remove"
+      ]
+    },
+
+    {
+      "name": "train 4drad",
+      "type": "python",
+      "request": "launch",
+      "program": "train_4drad.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "args": [
+        "--nEpochs=50",
+        "--output_dim=9216",
+        "--seqLen=1",
+        "--encoder_dim=256",
+        "--net=autoplace",
+        "--logsPath=logs_autoplace",
+        "--cGPU=0",
+        "--optim=adam",
+        "--split=train",
+        "--patience=0",
+        "--imgDir=/home/user/datasets/autoplace_4drad_18_9_i/img",
+        "--structDir=/home/user/datasets/autoplace_4drad_18_9_i",
+        "--lr=0.01"
+      ]
+    },
+    {
+      "name": "evaluate 4drad",
+      "type": "python",
+      "request": "launch",
+      "program": "train_4drad.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "args": [
+        "--mode=evaluate",
+        "--cGPU=0",
+        "--split=test",
+        "--resume=logs_autoplace/shjtn_train_ntu"
+      ]
+    },
+    {
+      "name": "evaluate 4drad nuscene",
+      "type": "python",
+      "request": "launch",
+      "program": "train.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "args": [
+        "--mode=evaluate",
+        "--cGPU=0",
+        "--split=test",
+        "--resume=logs_autoplace/7n5s_xy11_removal_autoplace__seq1__Jan26--17-29-19"
+      ]
+    },
+    {
+      "name": "train ",
+      "type": "python",
+      "request": "launch",
+      "program": "train.py",
+      "console": "integratedTerminal",
+      "justMyCode": false,
+      "args": [
+        "--nEpochs=50",
+        "--output_dim=9216",
+        "--seqLen=1",
+        "--encoder_dim=256",
+        "--net=autoplace",
+        "--logsPath=logs_autoplace",
+        "--cGPU=0",
+        "--split=val",
+        "--imgDir=/home/user/datasets/nuscenes_radar/dataset/7n5s_xy11_removal/img",
+        "--structDir=/home/user/datasets/nuscenes_radar/dataset/7n5s_xy11_removal"
+      ]
+    }
+  ]
 }

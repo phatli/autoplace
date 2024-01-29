@@ -1,4 +1,5 @@
 # %% pytorch
+import os
 import torch
 import argparse
 from torch.utils.data import DataLoader
@@ -10,7 +11,6 @@ from torch.utils.tensorboard import SummaryWriter
 # public library
 import logging
 from datetime import datetime
-import os
 import sys
 import numpy as np
 import tqdm
@@ -25,6 +25,7 @@ os.sys.path.append(os.path.join(os.path.dirname(__file__), '../'))
 # private library
 import tj_4drad as dataset
 import evaluate as evaluate
+
 
 class FixRandom():
     def __init__(self, seed) -> None:
@@ -104,6 +105,8 @@ def evaluate_model(opt, seed_worker=None,):
         whole_test_set = dataset.get_whole_val_set(opt)
     elif opt.split == 'test':
         whole_test_set = dataset.get_whole_test_set(opt)
+    elif opt.split == 'train':
+        whole_test_set = dataset.get_whole_training_set(opt)
     print('database:{}, query:{}'.format(whole_test_set.dbStruct.numDb, whole_test_set.dbStruct.numQ))
 
     # evaluate
@@ -221,6 +224,17 @@ def train(opt, seed_worker=None, trial=None):
         f.write(json.dumps({k: v for k, v in vars(opt).items()}, indent=''))
 
     # ---------------------------------------- 6. training --------------------------------------- #
+
+    current_recalls_val = evaluate.get_recall(opt, model, whole_val_set, seed_worker, 0, writer)
+    current_recalls_test = evaluate.get_recall(opt, model, whole_test_set, seed_worker, 0, writer)
+    current_recalls_train = evaluate.get_recall(opt, model, whole_train_set, seed_worker, 0, writer)
+    valset_recall_string = f' val: recall@1: {current_recalls_val[1]:.2f}\trecall@5: {current_recalls_val[5]:.2f}\trecall@10: {current_recalls_val[10]:.2f}\trecall@20: {current_recalls_val[20]:.2f}\n'
+    testset_recall_string = f'test: recall@1: {current_recalls_test[1]:.2f}\trecall@5: {current_recalls_test[5]:.2f}\trecall@10: {current_recalls_test[10]:.2f}\trecall@20: {current_recalls_test[20]:.2f}\n'
+    trainset_recall_string = f'train: recall@1: {current_recalls_train[1]:.2f}\trecall@5: {current_recalls_train[5]:.2f}\trecall@10: {current_recalls_train[10]:.2f}\trecall@20: {current_recalls_train[20]:.2f}\n'
+
+    quick_log('screen.log', 'epoch: {:>2d}\t'.format(0), 'lr: {:>.8f}\t'.format(optimizer.state_dict()['param_groups'][0]['lr']), 'train loss: {:>.4f}\t'.format(0),
+                valset_recall_string, testset_recall_string, trainset_recall_string, '\n')
+
     not_improved = 0
     best_recall_at_1 = 0
     for epoch in range(opt.start_epoch + 1, opt.nEpochs + 1):
@@ -307,6 +321,8 @@ def train(opt, seed_worker=None, trial=None):
 
         if (epoch % opt.evalEvery) == 0:
             current_recalls = evaluate.get_recall(opt, model, whole_val_set, seed_worker, epoch, writer)
+            current_recalls_test = evaluate.get_recall(opt, model, whole_test_set, seed_worker, epoch, writer)
+            current_recalls_train = evaluate.get_recall(opt, model, whole_train_set, seed_worker, epoch, writer)
             is_best = 0
 
             if epoch > 25:
@@ -327,10 +343,12 @@ def train(opt, seed_worker=None, trial=None):
                 if opt.patience > 0 and not_improved > (opt.patience / opt.evalEvery):
                     print('Performance did not improve for', opt.patience, 'epochs. Stopping.')
                     break
+            valset_recall_string = f' val: recall@1: {current_recalls[1]:.2f}\trecall@5: {current_recalls[5]:.2f}\trecall@10: {current_recalls[10]:.2f}\trecall@20: {current_recalls[20]:.2f}\n'
+            testset_recall_string = f'test: recall@1: {current_recalls_test[1]:.2f}\trecall@5: {current_recalls_test[5]:.2f}\trecall@10: {current_recalls_test[10]:.2f}\trecall@20: {current_recalls_test[20]:.2f}\n'
+            trainset_recall_string = f'train: recall@1: {current_recalls_train[1]:.2f}\trecall@5: {current_recalls_train[5]:.2f}\trecall@10: {current_recalls_train[10]:.2f}\trecall@20: {current_recalls_train[20]:.2f}\n'
 
             quick_log('screen.log', 'epoch: {:>2d}\t'.format(epoch), 'lr: {:>.8f}\t'.format(current_lr), 'train loss: {:>.4f}\t'.format(train_avg_loss),
-                      'recall@1: {:.2f}\t'.format(current_recalls[1]), 'recall@5: {:.2f}\t'.format(current_recalls[5]), 'recall@10: {:.2f}\t'.format(current_recalls[10]),
-                      'recall@20: {:.2f}\t'.format(current_recalls[20]), '*\n' if is_best else '\n')
+                      valset_recall_string, testset_recall_string, trainset_recall_string, '*\n' if is_best else '\n')
 
     writer.close()
     torch.save({
@@ -373,7 +391,7 @@ if __name__ == '__main__':
     parser.add_argument('--resume', type=str, default='', help='Path to load checkpoint from, for resuming training or testing.')
     parser.add_argument('--evalEvery', type=int, default=1, help='Do a validation set run, and save, every N epochs.')
     parser.add_argument('--patience', type=int, default=5, help='Patience for early stopping. 0 is off.')
-    parser.add_argument('--split', type=str, default='val', help='Split to use', choices=['val', 'test'])
+    parser.add_argument('--split', type=str, default='val', help='Split to use', choices=['val', 'test', 'train'])
     parser.add_argument('--num_clusters', type=int, default=64, help='Number of NetVlad clusters. Default=64')
     parser.add_argument('--encoder_dim', type=int, default=512, help='Number of feature dimension. Default=512')
     parser.add_argument('--output_dim', type=int, default=32768, help='Number of feature dimension. Default=512')

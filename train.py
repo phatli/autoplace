@@ -223,6 +223,12 @@ def train(opt, seed_worker=None, trial=None):
         f.write(json.dumps({k: v for k, v in vars(opt).items()}, indent=''))
 
     # ---------------------------------------- 6. training --------------------------------------- #
+
+    current_recalls = evaluate.get_recall(opt, model, whole_val_set, seed_worker, 0, writer)
+
+    quick_log('screen.log', 'epoch: {:>2d}\t'.format(0), 'lr: {:>.8f}\t'.format(optimizer.state_dict()['param_groups'][0]['lr']), 'train loss: {:>.4f}\t'.format(0),
+                'recall@1: {:.2f}\t'.format(current_recalls[1]), 'recall@5: {:.2f}\t'.format(current_recalls[5]), 'recall@10: {:.2f}\t'.format(current_recalls[10]),
+                'recall@20: {:.2f}\t'.format(current_recalls[20]), '\n')
     not_improved = 0
     best_recall_at_1 = 0
     for epoch in range(opt.start_epoch + 1, opt.nEpochs + 1):
