@@ -32,29 +32,26 @@ def get_recall(opt, model, eval_set, seed_worker, epoch=1, writer=None):
     qFeat = dbFeat[eval_set.dbStruct.numDb:].astype('float32')
     dbFeat = dbFeat[:eval_set.dbStruct.numDb].astype('float32')
 
-    # ---------------------------------------------------- sklearn --------------------------------------------------- #
-    # knn = NearestNeighbors(n_jobs=-1)
-    # knn.fit(dbFeat)
-    # dists, predictions = knn.kneighbors(qFeat, len(dbFeat))
-
     # ----------------------------------------------------- faiss ---------------------------------------------------- #
     faiss_index = faiss.IndexFlatL2(opt.output_dim)
     faiss_index.add(dbFeat)
-    # dists, predictions = faiss_index.search(qFeat, max(n_values))   # the results is sorted
-    dists, predictions = faiss_index.search(qFeat, len(dbFeat))               # the results is sorted
+    dists, predictions = faiss_index.search(qFeat, len(dbFeat))  # the results are sorted
     # ------------------------------------------------------- - ------------------------------------------------------ #
 
     # for each query get those within threshold distance
     gt = eval_set.getPositives()
     correct_at_n = np.zeros(len(n_values))
+    valid_queries = 0  # Count valid queries, i.e., those with non-empty positives
     for qIx, pred in enumerate(predictions):
-        for i, n in enumerate(n_values):
-            if np.any(np.in1d(pred[:n], gt[qIx])):
-                correct_at_n[i:] += 1
-                break
-    recall_at_n = correct_at_n / eval_set.dbStruct.numQ * 100.0
+        if gt[qIx].size > 0:  # Skip queries with empty positives
+            valid_queries += 1
+            for i, n in enumerate(n_values):
+                if np.any(np.in1d(pred[:n], gt[qIx])):
+                    correct_at_n[i:] += 1
+                    break
+    recall_at_n = correct_at_n / valid_queries * 100.0  # Use valid_queries for normalization
 
-    recalls = {}               # make dict for output
+    recalls = {}  # make dict for output
     for i, n in enumerate(n_values):
         recalls[n] = recall_at_n[i]
         if writer:

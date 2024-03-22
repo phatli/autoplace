@@ -17,7 +17,9 @@ import faiss
 def input_transform():
     return transforms.Compose([
         transforms.ToTensor(),
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[
+                             0.229, 0.224, 0.225]),
+        # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.117, 0.114, 0.115]),
     ])
 
 
@@ -41,7 +43,8 @@ def get_val_query_set(opt, margin=0.1):
     return QueryDatasetFromStruct(opt, join(opt.structDir, 'nuscenes_val.mat'), opt.imgDir, input_transform=input_transform(), margin=margin)
 
 
-dbStruct = namedtuple('dbStruct', ['whichSet', 'dataset', 'dbImage', 'utmDb', 'qImage', 'utmQ', 'numDb', 'numQ', 'posDistThr', 'posDistSqThr', 'nonTrivPosDistSqThr'])
+dbStruct = namedtuple('dbStruct', ['whichSet', 'dataset', 'dbImage', 'utmDb', 'qImage',
+                      'utmQ', 'numDb', 'numQ', 'posDistThr', 'posDistSqThr', 'nonTrivPosDistSqThr'])
 
 
 def parse_dbStruct(path):
@@ -106,7 +109,8 @@ class WholeDatasetFromStructForCluster(data.Dataset):
         if self.positives is None:
             knn = NearestNeighbors(n_jobs=-1)
             knn.fit(self.dbStruct.utmDb)
-            self.distances, self.positives = knn.radius_neighbors(self.dbStruct.utmQ, radius=self.dbStruct.nonTrivPosDistSqThr**0.5)    # TODO: sort!!
+            self.distances, self.positives = knn.radius_neighbors(
+                self.dbStruct.utmQ, radius=self.dbStruct.nonTrivPosDistSqThr**0.5)    # TODO: sort!!
 
         return self.positives
 
@@ -146,7 +150,8 @@ class WholeDatasetFromStruct(data.Dataset):
             edge_indices = [-4, -3, -2, -1, 0]
         imgs = []
         for offset in edge_indices:
-            img = Image.open(filename[:-9] + '{:0>5d}.jpg'.format(int(frame_index + offset)))
+            img = Image.open(
+                filename[:-9] + '{:0>5d}.jpg'.format(int(frame_index + offset)))
             if self.input_transform:
                 img = self.input_transform(img)
             imgs.append(img)
@@ -174,7 +179,8 @@ class WholeDatasetFromStruct(data.Dataset):
         if self.positives is None:
             knn = NearestNeighbors(n_jobs=-1)
             knn.fit(self.dbStruct.utmDb)
-            self.distances, self.positives = knn.radius_neighbors(self.dbStruct.utmQ, radius=self.dbStruct.nonTrivPosDistSqThr**0.5)    # TODO: sort!!
+            self.distances, self.positives = knn.radius_neighbors(
+                self.dbStruct.utmQ, radius=self.dbStruct.nonTrivPosDistSqThr**0.5)    # TODO: sort!!
 
         return self.positives
 
@@ -199,10 +205,13 @@ def collate_fn(batch):
 
     query, positive, negatives, indices = zip(*batch)
 
-    query = data.dataloader.default_collate(query)      # ([8, 3, 200, 200]) = [(3, 200, 200), (3, 200, 200), ..  ]     ([8, 1, 3, 200, 200])
+    # ([8, 3, 200, 200]) = [(3, 200, 200), (3, 200, 200), ..  ]     ([8, 1, 3, 200, 200])
+    query = data.dataloader.default_collate(query)
     positive = data.dataloader.default_collate(positive)
-    negCounts = data.dataloader.default_collate([x.shape[0] for x in negatives])
-    negatives = torch.cat(negatives, 0)     # ([80, 3, 200, 200]) ([80, 1, 3, 200, 200])
+    negCounts = data.dataloader.default_collate(
+        [x.shape[0] for x in negatives])
+    # ([80, 3, 200, 200]) ([80, 1, 3, 200, 200])
+    negatives = torch.cat(negatives, 0)
     import itertools
     indices = list(itertools.chain(*indices))
 
@@ -229,20 +238,24 @@ class QueryDatasetFromStruct(data.Dataset):
         knn.fit(self.dbStruct.utmDb)
 
         # TODO use sqeuclidean as metric?
-        self.nontrivial_positives = list(knn.radius_neighbors(self.dbStruct.utmQ, radius=self.dbStruct.nonTrivPosDistSqThr**0.5, return_distance=False))
+        self.nontrivial_positives = list(knn.radius_neighbors(
+            self.dbStruct.utmQ, radius=self.dbStruct.nonTrivPosDistSqThr**0.5, return_distance=False))
         # radius returns unsorted, sort once now so we dont have to later
         for i, posi in enumerate(self.nontrivial_positives):
             self.nontrivial_positives[i] = np.sort(posi)
         # its possible some queries don't have any non trivial potential positives
         # lets filter those out
-        self.queries = np.where(np.array([len(x) for x in self.nontrivial_positives]) > 0)[0]
+        self.queries = np.where(
+            np.array([len(x) for x in self.nontrivial_positives]) > 0)[0]
 
         # potential negatives are those outside of posDistThr range
-        potential_positives = knn.radius_neighbors(self.dbStruct.utmQ, radius=self.dbStruct.posDistThr, return_distance=False)
+        potential_positives = knn.radius_neighbors(
+            self.dbStruct.utmQ, radius=self.dbStruct.posDistThr, return_distance=False)
 
         self.potential_negatives = []
         for pos in potential_positives:
-            self.potential_negatives.append(np.setdiff1d(np.arange(self.dbStruct.numDb), pos, assume_unique=True))
+            self.potential_negatives.append(np.setdiff1d(
+                np.arange(self.dbStruct.numDb), pos, assume_unique=True))
 
         self.cache = None  # filepath of HDF5 containing feature vectors for images
 
@@ -263,7 +276,8 @@ class QueryDatasetFromStruct(data.Dataset):
             edge_indices = [-4, -3, -2, -1, 0]
         imgs = []
         for offset in edge_indices:
-            img = Image.open(filename[:-9] + '{:0>5d}.jpg'.format(int(frame_index + offset)))
+            img = Image.open(
+                filename[:-9] + '{:0>5d}.jpg'.format(int(frame_index + offset)))
             if self.input_transform:
                 img = self.input_transform(img)
             imgs.append(img)
@@ -287,8 +301,11 @@ class QueryDatasetFromStruct(data.Dataset):
             dPos, posNN = result.values, result.indices
             posIndex = self.nontrivial_positives[index][posNN].item()
 
-            negSample = np.random.choice(self.potential_negatives[index], self.nNegSample)  # randomly choose potential_negatives
-            negSample = np.unique(np.concatenate([self.negCache[index], negSample])).astype(np.int64)        # remember negSamples history for each query
+            # randomly choose potential_negatives
+            negSample = np.random.choice(
+                self.potential_negatives[index], self.nNegSample)
+            negSample = np.unique(np.concatenate([self.negCache[index], negSample])).astype(
+                np.int64)        # remember negSamples history for each query
 
             negFeat = h5feat[negSample.tolist()]
             negFeat = torch.tensor(negFeat)
@@ -308,15 +325,19 @@ class QueryDatasetFromStruct(data.Dataset):
             negIndices = negSample[negNN].astype(np.int32)
             self.negCache[index] = negIndices
 
-        query = self.load_images(join(self.img_dir, self.dbStruct.qImage[index]))
-        positive = self.load_images(join(self.img_dir, self.dbStruct.dbImage[posIndex]))
+        query = self.load_images(
+            join(self.img_dir, self.dbStruct.qImage[index]))
+        positive = self.load_images(
+            join(self.img_dir, self.dbStruct.dbImage[posIndex]))
 
         negatives = []
         for negIndex in negIndices:
-            negative = self.load_images(join(self.img_dir, self.dbStruct.dbImage[negIndex]))
+            negative = self.load_images(
+                join(self.img_dir, self.dbStruct.dbImage[negIndex]))
             negatives.append(negative)
 
-        negatives = torch.stack(negatives, 0)               # ([10, 3, 200, 200])
+        # ([10, 3, 200, 200])
+        negatives = torch.stack(negatives, 0)
         return query, positive, negatives, [index, posIndex] + negIndices.tolist()
 
     def __len__(self):
